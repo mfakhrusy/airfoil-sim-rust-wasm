@@ -1,5 +1,5 @@
 {
-    "name": "airfoil-sim-rust-wasm",
+    "name": "airfoil-sim",
     "compatibility_date": "2025-07-20",
     "assets": {
         "directory": "."
