@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Airfoil Simulation - Hello World</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        
+        button {
+            background-color: #007cba;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #005a87;
+        }
+        
+        #output {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            border-left: 4px solid #007cba;
+        }
+        
+        .loading {
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛩️ Airfoil Simulation - Hello World</h1>
+        <p>Welcome to the Rust WASM Airfoil Simulation!</p>
+        
+        <button id="greet-button">Say Hello from Rust WASM!</button>
+        <button id="console-greet">Greet to Console</button>
+        
+        <div id="output">
+            <div class="loading">Loading WASM module...</div>
+        </div>
+    </div>
+
+    <script type="module">
+        import init, { greet, greet_console, get_greeting, add } from './pkg/airfoil_sim_rust_wasm.js';
+        
+        async function run() {
+            try {
+                // Initialize the WASM module
+                await init();
+                
+                // Get greeting from Rust and display it
+                const rustGreeting = get_greeting();
+                
+                // Update the output to show success
+                const output = document.getElementById('output');
+                output.innerHTML = `
+                    <strong>✅ WASM module loaded successfully!</strong><br>
+                    <strong>Message from Rust:</strong> ${rustGreeting}<br>
+                    Click the buttons to interact with Rust code.
+                `;
+                
+                // Add event listener for the greet button (shows alert)
+                document.getElementById('greet-button').addEventListener('click', () => {
+                    greet(); // This will show the alert from your Rust code
+                });
+                
+                // Add event listener for console greet
+                document.getElementById('console-greet').addEventListener('click', () => {
+                    console.log('Hello from JavaScript! 🌐');
+                    console.log('Calling Rust WASM functions...');
+                    
+                    greet_console(); // Call Rust console logging function
+                    
+                    // Test the add function
+                    const result = add(15, 27);
+                    console.log(`JavaScript received result: ${result}`);
+                    
+                    output.innerHTML += '<br><em>Check the browser console for messages from Rust! 🦀</em>';
+                });
+                
+            } catch (error) {
+                console.error('Failed to initialize WASM module:', error);
+                const output = document.getElementById('output');
+                output.innerHTML = `<strong style="color: red;">❌ Error loading WASM module:</strong><br>${error.message}`;
+            }
+        }
+        
+        run();
+    </script>
+</body>
+</html>
