@@ -1,4 +1,4 @@
-.PHONY: help build start serve clean test install-deps
+.PHONY: help build start clean test install-deps
 
 # Default target
 help:
@@ -6,7 +6,6 @@ help:
 	@echo ""
 	@echo "  make build       - Build the Rust WASM package"
 	@echo "  make start       - Start the development server (port 8000)"
-	@echo "  make serve       - Alias for start"
 	@echo "  make clean       - Clean build artifacts"
 	@echo "  make test        - Run Rust tests"
 	@echo "  make test-web    - Run web tests"
@@ -67,7 +66,7 @@ install-deps:
 	}
 	@echo "✅ All dependencies are available!"
 
-# Development workflow - build and serve
+# Development workflow - build and start server 
 dev: build start
 
 # Production build with optimizations
