@@ -166,7 +166,6 @@
         <h1>🛩️ Airfoil Visualization</h1>
         
         <div class="controls">
-            <input type="file" id="file-input" accept=".dat,.txt" />
             <button id="load-naca-btn">Load NACA 0012</button>
             <button id="clear-btn">Clear</button>
         </div>
@@ -229,9 +228,6 @@
         }
         
         function setupEventListeners() {
-            // File input handler
-            document.getElementById('file-input').addEventListener('change', handleFileLoad);
-            
             // Load NACA 0012 button
             document.getElementById('load-naca-btn').addEventListener('click', loadNACA0012);
             
@@ -431,8 +427,6 @@
             document.getElementById('chord-length').textContent = '-';
             document.getElementById('max-thickness').textContent = '-';
             
-            // Clear file input
-            document.getElementById('file-input').value = '';
             
             showStatus('Canvas cleared', 'success');
         }
