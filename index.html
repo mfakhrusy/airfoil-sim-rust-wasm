@@ -2,117 +2,458 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Airfoil Simulation - Hello World</title>
+    <title>Airfoil Visualization - Rust WASM</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 50px auto;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
             padding: 20px;
-            background-color: #f5f5f5;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
         }
         
         .container {
-            background: white;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
             padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            text-align: center;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
         }
         
         h1 {
-            color: #333;
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
             margin-bottom: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        input[type="file"] {
+            padding: 8px 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
         }
         
         button {
-            background-color: #007cba;
+            background: linear-gradient(45deg, #667eea, #764ba2);
             color: white;
             border: none;
             padding: 12px 24px;
             font-size: 16px;
-            border-radius: 5px;
+            border-radius: 8px;
             cursor: pointer;
-            margin: 10px;
-            transition: background-color 0.3s;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
         }
         
         button:hover {
-            background-color: #005a87;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
         }
         
-        #output {
-            margin-top: 20px;
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .canvas-container {
+            text-align: center;
+            margin: 20px 0;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            background: white;
+        }
+        
+        canvas {
+            display: block;
+            width: 100%;
+            height: auto;
+            max-width: 100%;
+        }
+        
+        .info-panel {
+            background: #f8f9fa;
+            border-radius: 8px;
             padding: 15px;
-            background-color: #f8f9fa;
-            border-radius: 5px;
-            border-left: 4px solid #007cba;
+            margin-top: 20px;
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 10px;
+        }
+        
+        .info-item {
+            background: white;
+            padding: 10px;
+            border-radius: 6px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .info-label {
+            font-weight: bold;
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        .info-value {
+            font-size: 1.1em;
+            color: #2c3e50;
+            margin-top: 2px;
         }
         
         .loading {
+            display: none;
             color: #666;
+            font-style: italic;
+        }
+        
+        .error {
+            color: #e74c3c;
+            background: #fee;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #fcc;
+            margin: 10px 0;
+        }
+        
+        .success {
+            color: #27ae60;
+            background: #efe;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #cfc;
+            margin: 10px 0;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 2em;
+            }
+            
+            .controls {
+                flex-direction: column;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🛩️ Airfoil Simulation - Hello World</h1>
-        <p>Welcome to the Rust WASM Airfoil Simulation!</p>
+        <h1>🛩️ Airfoil Visualization</h1>
         
-        <button id="greet-button">Say Hello from Rust WASM!</button>
-        <button id="console-greet">Greet to Console</button>
+        <div class="controls">
+            <input type="file" id="file-input" accept=".dat,.txt" />
+            <button id="load-naca-btn">Load NACA 0012</button>
+            <button id="clear-btn">Clear</button>
+        </div>
         
-        <div id="output">
-            <div class="loading">Loading WASM module...</div>
+        <div id="status"></div>
+        
+        <div class="canvas-container">
+            <canvas id="airfoil-canvas" width="800" height="400"></canvas>
+        </div>
+        
+        <div class="info-panel">
+            <h3>Airfoil Information</h3>
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">Name</div>
+                    <div class="info-value" id="airfoil-name">-</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Points</div>
+                    <div class="info-value" id="point-count">-</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Chord Length</div>
+                    <div class="info-value" id="chord-length">-</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Max Thickness</div>
+                    <div class="info-value" id="max-thickness">-</div>
+                </div>
+            </div>
         </div>
     </div>
 
     <script type="module">
-        import init, { greet, greet_console, get_greeting, add } from './pkg/airfoil_sim_rust_wasm.js';
+        import init, { parse_airfoil_dat } from './pkg/airfoil_sim_rust_wasm.js';
         
-        async function run() {
+        let currentAirfoil = null;
+        let canvas, ctx;
+        
+        async function initializeApp() {
             try {
-                // Initialize the WASM module
+                // Initialize WASM module
                 await init();
+                console.log('✅ WASM module loaded successfully');
                 
-                // Get greeting from Rust and display it
-                const rustGreeting = get_greeting();
+                // Get canvas and context
+                canvas = document.getElementById('airfoil-canvas');
+                ctx = canvas.getContext('2d');
                 
-                // Update the output to show success
-                const output = document.getElementById('output');
-                output.innerHTML = `
-                    <strong>✅ WASM module loaded successfully!</strong><br>
-                    <strong>Message from Rust:</strong> ${rustGreeting}<br>
-                    Click the buttons to interact with Rust code.
-                `;
+                // Set up event listeners
+                setupEventListeners();
                 
-                // Add event listener for the greet button (shows alert)
-                document.getElementById('greet-button').addEventListener('click', () => {
-                    greet(); // This will show the alert from your Rust code
-                });
-                
-                // Add event listener for console greet
-                document.getElementById('console-greet').addEventListener('click', () => {
-                    console.log('Hello from JavaScript! 🌐');
-                    console.log('Calling Rust WASM functions...');
-                    
-                    greet_console(); // Call Rust console logging function
-                    
-                    // Test the add function
-                    const result = add(15, 27);
-                    console.log(`JavaScript received result: ${result}`);
-                    
-                    output.innerHTML += '<br><em>Check the browser console for messages from Rust! 🦀</em>';
-                });
+                // Show initial status
+                showStatus('Ready to load airfoil data', 'success');
                 
             } catch (error) {
                 console.error('Failed to initialize WASM module:', error);
-                const output = document.getElementById('output');
-                output.innerHTML = `<strong style="color: red;">❌ Error loading WASM module:</strong><br>${error.message}`;
+                showStatus('Error initializing application: ' + error.message, 'error');
             }
         }
         
-        run();
+        function setupEventListeners() {
+            // File input handler
+            document.getElementById('file-input').addEventListener('change', handleFileLoad);
+            
+            // Load NACA 0012 button
+            document.getElementById('load-naca-btn').addEventListener('click', loadNACA0012);
+            
+            // Clear button
+            document.getElementById('clear-btn').addEventListener('click', clearAirfoil);
+        }
+        
+        async function handleFileLoad(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            try {
+                showStatus('Loading file...', 'loading');
+                
+                const text = await file.text();
+                const fileName = file.name.replace(/\.[^/.]+$/, ""); // Remove extension
+                
+                parseAndDisplayAirfoil(text, fileName);
+                
+            } catch (error) {
+                console.error('Error loading file:', error);
+                showStatus('Error loading file: ' + error.message, 'error');
+            }
+        }
+        
+        async function loadNACA0012() {
+            try {
+                showStatus('Loading NACA 0012...', 'loading');
+                
+                const response = await fetch('./airfoil-data/naca-0012.dat');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const text = await response.text();
+                parseAndDisplayAirfoil(text, 'NACA 0012');
+                
+            } catch (error) {
+                console.error('Error loading NACA 0012:', error);
+                showStatus('Error loading NACA 0012: ' + error.message, 'error');
+            }
+        }
+        
+        function parseAndDisplayAirfoil(data, name) {
+            try {
+                // Parse airfoil data using Rust WASM
+                currentAirfoil = parse_airfoil_dat(data, name);
+                
+                // Display the airfoil
+                drawAirfoil(currentAirfoil);
+                
+                // Update info panel
+                updateInfoPanel(currentAirfoil);
+                
+                showStatus(`Successfully loaded ${name} with ${currentAirfoil.point_count} points`, 'success');
+                
+            } catch (error) {
+                console.error('Error parsing airfoil:', error);
+                showStatus('Error parsing airfoil: ' + error.message, 'error');
+            }
+        }
+        
+        function drawAirfoil(airfoil) {
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Get airfoil data
+            const data = airfoil.get_points_as_arrays();
+            const bounds = airfoil.get_bounds();
+            
+            const xCoords = Array.from(data.x);
+            const yCoords = Array.from(data.y);
+            
+            if (xCoords.length === 0) return;
+            
+            // Calculate scaling and offset for proper display
+            const padding = 50;
+            const drawWidth = canvas.width - 2 * padding;
+            const drawHeight = canvas.height - 2 * padding;
+            
+            const xRange = bounds.maxX - bounds.minX;
+            const yRange = bounds.maxY - bounds.minY;
+            
+            const xScale = drawWidth / xRange;
+            const yScale = drawHeight / Math.max(yRange, 0.5); // Ensure minimum height
+            
+            // Use the smaller scale to maintain aspect ratio
+            const scale = Math.min(xScale, yScale);
+            
+            const xOffset = padding + (drawWidth - xRange * scale) / 2;
+            const yOffset = canvas.height / 2; // Center vertically
+            
+            // Transform coordinates
+            function transformX(x) {
+                return xOffset + (x - bounds.minX) * scale;
+            }
+            
+            function transformY(y) {
+                return yOffset - y * scale; // Flip Y axis
+            }
+            
+            // Draw coordinate system
+            drawCoordinateSystem(bounds, transformX, transformY);
+            
+            // Draw airfoil
+            ctx.beginPath();
+            ctx.strokeStyle = '#2c3e50';
+            ctx.lineWidth = 2;
+            ctx.fillStyle = 'rgba(102, 126, 234, 0.1)';
+            
+            // Move to first point
+            ctx.moveTo(transformX(xCoords[0]), transformY(yCoords[0]));
+            
+            // Draw lines to all other points
+            for (let i = 1; i < xCoords.length; i++) {
+                ctx.lineTo(transformX(xCoords[i]), transformY(yCoords[i]));
+            }
+            
+            // Close the path and fill
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+            
+            // Draw points
+            ctx.fillStyle = '#e74c3c';
+            for (let i = 0; i < xCoords.length; i++) {
+                ctx.beginPath();
+                ctx.arc(transformX(xCoords[i]), transformY(yCoords[i]), 2, 0, 2 * Math.PI);
+                ctx.fill();
+            }
+            
+            // Draw leading and trailing edge markers
+            drawEdgeMarkers(xCoords, yCoords, transformX, transformY);
+        }
+        
+        function drawCoordinateSystem(bounds, transformX, transformY) {
+            ctx.strokeStyle = '#bdc3c7';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([5, 5]);
+            
+            // X-axis
+            ctx.beginPath();
+            ctx.moveTo(transformX(bounds.minX), transformY(0));
+            ctx.lineTo(transformX(bounds.maxX), transformY(0));
+            ctx.stroke();
+            
+            // Y-axis at x=0 (or leading edge if x=0 is not in range)
+            const yAxisX = Math.max(bounds.minX, Math.min(0, bounds.maxX));
+            ctx.beginPath();
+            ctx.moveTo(transformX(yAxisX), transformY(bounds.minY));
+            ctx.lineTo(transformX(yAxisX), transformY(bounds.maxY));
+            ctx.stroke();
+            
+            ctx.setLineDash([]);
+        }
+        
+        function drawEdgeMarkers(xCoords, yCoords, transformX, transformY) {
+            // Find leading edge (minimum x) and trailing edge (maximum x)
+            let minXIndex = 0, maxXIndex = 0;
+            
+            for (let i = 0; i < xCoords.length; i++) {
+                if (xCoords[i] < xCoords[minXIndex]) minXIndex = i;
+                if (xCoords[i] > xCoords[maxXIndex]) maxXIndex = i;
+            }
+            
+            // Draw leading edge marker
+            ctx.fillStyle = '#27ae60';
+            ctx.beginPath();
+            ctx.arc(transformX(xCoords[minXIndex]), transformY(yCoords[minXIndex]), 5, 0, 2 * Math.PI);
+            ctx.fill();
+            
+            // Draw trailing edge marker
+            ctx.fillStyle = '#e67e22';
+            ctx.beginPath();
+            ctx.arc(transformX(xCoords[maxXIndex]), transformY(yCoords[maxXIndex]), 5, 0, 2 * Math.PI);
+            ctx.fill();
+        }
+        
+        function updateInfoPanel(airfoil) {
+            const bounds = airfoil.get_bounds();
+            
+            document.getElementById('airfoil-name').textContent = airfoil.name;
+            document.getElementById('point-count').textContent = airfoil.point_count;
+            document.getElementById('chord-length').textContent = 
+                (bounds.maxX - bounds.minX).toFixed(4);
+            document.getElementById('max-thickness').textContent = 
+                Math.max(Math.abs(bounds.maxY), Math.abs(bounds.minY)).toFixed(4);
+        }
+        
+        function clearAirfoil() {
+            currentAirfoil = null;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Clear info panel
+            document.getElementById('airfoil-name').textContent = '-';
+            document.getElementById('point-count').textContent = '-';
+            document.getElementById('chord-length').textContent = '-';
+            document.getElementById('max-thickness').textContent = '-';
+            
+            // Clear file input
+            document.getElementById('file-input').value = '';
+            
+            showStatus('Canvas cleared', 'success');
+        }
+        
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.className = type;
+            statusDiv.textContent = message;
+            
+            if (type === 'loading') {
+                statusDiv.style.display = 'block';
+            } else {
+                // Hide status after 3 seconds for success/error messages
+                setTimeout(() => {
+                    statusDiv.style.display = 'none';
+                }, 3000);
+            }
+        }
+        
+        // Initialize the app
+        initializeApp();
     </script>
 </body>
 </html>
